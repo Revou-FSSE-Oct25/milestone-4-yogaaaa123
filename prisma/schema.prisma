@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  role      String    @default("CUSTOMER")
+  hashedRefreshToken String?
+  accounts  Account[]
+  createdAt DateTime  @default(now())
+
+  @@map("users") 
+}
+
+model Account {
+  id            Int           @id @default(autoincrement())
+  accountNumber String        @unique
+  userId        Int
+  balance       Decimal        @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relasi
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentTrans     Transaction[] @relation("Source")
+  receivedTrans Transaction[] @relation("Destination")
+
+  @@map("accounts") 
+}
+
+model Transaction {
+  id            Int      @id @default(autoincrement())
+  type          String   
+  amount        Decimal
+  sourceId      Int?
+  source        Account? @relation("Source", fields: [sourceId], references: [id])
+  destinationId Int?
+  destination   Account? @relation("Destination", fields: [destinationId], references: [id])
+  createdAt     DateTime @default(now())
+  idempotencyKey String? @unique
+
+  @@index([createdAt])
+  @@map("transactions") 
+}
