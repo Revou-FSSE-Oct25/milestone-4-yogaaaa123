@@ -46,14 +46,14 @@ export class AccountService {
     });
   }
 
-  // 2. LIST: Lihat Semua Rekening Milik User
+  // 2. semua rekening punya user
   async findAll(userId: number) {
     return this.prisma.account.findMany({
       where: { userId },
     });
   }
 
-  // 3. DETAIL: Lihat Satu Rekening
+  // 3 Lihat Satu Rekening
   async findOne(id: number, userId: number) {
     const account = await this.prisma.account.findFirst({
       where: { id, userId },
@@ -62,16 +62,64 @@ export class AccountService {
     return account;
   }
 
-  // 4. UPDATE: Edit Balance Rekening (ADMIN ONLY)
+  // 4.Edit Rekening
   async update(id: number, userId: number, data: UpdateAccountDto) {
-    await this.findOne(id, userId); // Pastikan rekening ada & milik user
+    await this.findOne(id, userId);
     return this.prisma.account.update({
       where: { id },
       data,
     });
   }
 
-  // 5. DELETE: Tutup Rekening
+  // 6. Update account
+  async adminUpdate(id: number, data: UpdateAccountDto) {
+    // Cek rekening
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Rekening tidak ditemukan');
+    }
+
+    return this.prisma.account.update({
+      where: { id },
+      data,
+    });
+  }
+
+  // 7. admin
+  async adminFindOne(id: number) {
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Rekening tidak ditemukan');
+    }
+
+    return account;
+  }
+
+  // 8. lihat semua rekening
+  async adminFindAll() {
+    return this.prisma.account.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  // 5. hapus rekening
   async remove(id: number, userId: number) {
     await this.findOne(id, userId); // Pastikan rekening ada & milik user
     return this.prisma.account.delete({

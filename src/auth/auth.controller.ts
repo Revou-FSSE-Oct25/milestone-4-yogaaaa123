@@ -2,6 +2,7 @@ import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { JwtGuard } from '../common/guards/jwt.guard';
+import * as Interfaces from '../common/interfaces/request-with-user.interface';
 
 @Controller('auth') // Sesuai rubrik: /auth
 export class AuthController {
@@ -24,7 +25,7 @@ export class AuthController {
 
   @UseGuards(JwtGuard)
   @Post('logout')
-  logout(@Request() req: any) {
+  logout(@Request() req: Interfaces.RequestWithUser) {
     return this.userService.logout(req.user.id);
   }
 }

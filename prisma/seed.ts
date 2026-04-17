@@ -23,7 +23,6 @@ async function main() {
     },
   });
 
-  // 1. Admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@revobank.com' },
     update: {},
@@ -35,7 +34,6 @@ async function main() {
     },
   });
 
-  // 2. user 1
   const user1 = await prisma.user.upsert({
     where: { email: 'yoga@revo.com' },
     update: {},
@@ -53,7 +51,6 @@ async function main() {
     },
   });
 
-  // 3. user 2
   const user2 = await prisma.user.upsert({
     where: { email: 'andi@revo.com' },
     update: {},

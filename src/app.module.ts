@@ -10,13 +10,12 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountModule } from './account/account.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    // 1. Konfigurasi .env Global
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // 2. Konfigurasi Rate Limiting (Maks 10 request / 60 detik)
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -29,6 +28,7 @@ import { TransactionModule } from './transaction/transaction.module';
     AuthModule,
     AccountModule,
     TransactionModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

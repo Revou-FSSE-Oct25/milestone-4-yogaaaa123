@@ -4,5 +4,6 @@ export const jwtConfig = {
   refreshSecret:
     process.env.JWT_REFRESH_SECRET ??
     'fallback_refresh_secret_change_in_production',
-  refreshExpiresIn: Number(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS) || 604800, // 7 days in seconds
+  refreshExpiresIn:
+    Number(process.env.JWT_REFRESH_EXPIRES_IN_SECONDS) || 604800, // 7 days in seconds
 };

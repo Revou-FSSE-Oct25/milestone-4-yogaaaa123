@@ -32,7 +32,9 @@ export class JwtGuard implements CanActivate {
       });
       Object.assign(request, { user: payload });
     } catch {
-      throw new UnauthorizedException('Token JWT tidak valid atau sudah kadaluarsa.');
+      throw new UnauthorizedException(
+        'Token JWT tidak valid atau sudah kadaluarsa.',
+      );
     }
 
     return true;
