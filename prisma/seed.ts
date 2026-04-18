@@ -71,7 +71,7 @@ async function main() {
   console.log({ admin, user1, user2 });
   console.log('✅ Seed data berhasil dibuat!');
 }
-
+// y
 main()
   .catch((e) => {
     console.error(e);
