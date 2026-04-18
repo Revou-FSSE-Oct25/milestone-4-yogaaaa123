@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { PrismaClientExceptionFilter } from './common/filters/prisma-exception.filter';
+import { JsonExceptionFilter } from './common/filters/json-exception.filter';
 import helmet from 'helmet';
 import { WinstonLogger } from './common/logger/winston.logger';
 
@@ -35,6 +36,7 @@ async function bootstrap() {
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
+  app.useGlobalFilters(new JsonExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('RevoBank API')
