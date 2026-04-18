@@ -4,19 +4,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { PrismaClientExceptionFilter } from './common/filters/prisma-exception.filter';
 import helmet from 'helmet';
+import { WinstonLogger } from './common/logger/winston.logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new WinstonLogger(),
+  });
 
-  // 0. Keamanan Dasar (Helmet & CORS)
   app.use(helmet());
+  
+  // Compression middleware
+  const compression = require('compression');
+  app.use(compression());
+  
   app.enableCors({
-    origin: '*', // Diubah ke domain frontend resmi nanti
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://revobank.com', 'https://www.revobank.com']
+      : '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  // 1. Aktifkan Validasi Global (DTO)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,11 +33,9 @@ async function bootstrap() {
     }),
   );
 
-  // 2. Register Global Prisma Exception Filter supaya tidak ada HTTP 500 mentah ke client
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
-  // 3. Konfigurasi Swagger
   const config = new DocumentBuilder()
     .setTitle('RevoBank API')
     .setDescription(
@@ -52,13 +58,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 4. Jalankan Server
   const port = 3000;
   await app.listen(port);
 
-  console.log(`\n🚀 RevoBank API is running on: http://localhost:${port}`);
-  console.log(`📖 Swagger Documentation: http://localhost:${port}/api\n`);
+  const winstonLogger = new WinstonLogger();
+  winstonLogger.log(`🚀 RevoBank API is running on: http://localhost:${port}`, 'Bootstrap');
+  winstonLogger.log(`📖 Swagger Documentation: http://localhost:${port}/api`, 'Bootstrap');
+  winstonLogger.log(`🏥 Health Check: http://localhost:${port}/health`, 'Bootstrap');
 }
 bootstrap().catch((err) => {
-  console.error(err);
+  const winstonLogger = new WinstonLogger();
+  winstonLogger.error('Failed to start application', err.stack, 'Bootstrap');
 });

@@ -40,7 +40,7 @@ export class UserService {
   }
 
   private async updateRefreshToken(userId: number, refreshToken: string) {
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 12);
     await this.prisma.user.update({
       where: { id: userId },
       data: { hashedRefreshToken },
@@ -57,7 +57,7 @@ export class UserService {
       throw new ConflictException('Email sudah terdaftar');
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
 
     const user = await this.prisma.user.create({
       data: {
@@ -159,7 +159,7 @@ export class UserService {
   async update(id: number, updateUserDto: UpdateUserDto) {
     // Jika user ingin update password, kita harus hash lagi
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
     return this.prisma.user.update({

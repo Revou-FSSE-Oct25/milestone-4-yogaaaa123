@@ -1,17 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { AccountService } from '../account/account.service';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { UpdateAccountDto } from '../account/dto/update-account.dto';
+import { AuditService, AuditLogData } from '../audit/audit.service';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
     private accountService: AccountService,
+    private auditService: AuditService,
   ) {}
 
   async findAllUsers() {
@@ -50,7 +54,7 @@ export class AdminService {
   async updateUser(id: number, updateUserDto: UpdateUserDto) {
     // Jika user ingin update password, kita harus hash lagi
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
     return this.prisma.user.update({

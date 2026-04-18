@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { randomInt } from 'crypto';
@@ -12,12 +12,10 @@ export class AccountService {
     let accountNumber = '';
     let isUnique = false;
     let attempts = 0;
-    const MAX_ATTEMPTS = 5;
+    const MAX_ATTEMPTS = 20; // Meningkatkan dari 5 ke 20 untuk mengurangi kemungkinan collision
 
-    // Menghasilkan nomor rekening menggunakan modul standar security (Crypto)
-    // dan memastikan bahwa ia belum pernah dipakai (Retry Mechanism)
+
     while (!isUnique && attempts < MAX_ATTEMPTS) {
-      // Menghasilkan angka random 10 digit dengan standar kriptografi
       const randomPart = randomInt(1000000000, 9999999999);
       accountNumber = randomPart.toString();
 
@@ -27,13 +25,14 @@ export class AccountService {
 
       if (!existingData) {
         isUnique = true;
+        break;
       }
       attempts++;
     }
 
     if (!isUnique) {
-      throw new Error(
-        'Sistem gagal membuat nomor rekening unik. Silakan coba lagi nanti.',
+      throw new BadRequestException(
+        `Sistem gagal membuat nomor rekening unik setelah ${MAX_ATTEMPTS} percobaan. Silakan coba lagi nanti.`,
       );
     }
 

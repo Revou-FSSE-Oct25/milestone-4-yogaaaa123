@@ -101,8 +101,12 @@ export class TransactionService {
             'Rekening tidak ditemukan atau bukan milikmu',
           );
 
-        // [FIX NO.1] Race Condition TERTUTUP: updateMany bekerja scara Atomic
-        // dan melakukan validasi kondisi balancenya > amount BERSAMAAN di 1 query DB.
+        // Validasi balance di service layer sebagai defensive programming
+        const currentBalance = Number(account.balance);
+        if (currentBalance < amount) {
+          throw new BadRequestException('Saldo tidak mencukupi untuk melakukan penarikan');
+        }
+
         const updatedResult = await tx.account.updateMany({
           where: {
             id: account.id,

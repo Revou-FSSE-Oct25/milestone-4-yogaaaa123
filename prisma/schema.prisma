@@ -6,46 +6,102 @@ datasource db {
   provider = "postgresql"
 }
 
+// ========== ENUMS ==========
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAW
+  TRANSFER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+}
+
+enum EntityType {
+  USER
+  ACCOUNT
+  TRANSACTION
+}
+
+// ========== MODELS ==========
 model User {
   id        Int       @id @default(autoincrement())
-  email     String    @unique
-  password  String
-  name      String
-  role      String    @default("CUSTOMER")
-  hashedRefreshToken String?
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  name      String    @db.VarChar(100)
+  role      UserRole  @default(CUSTOMER)
+  hashedRefreshToken String? @db.VarChar(255)
   accounts  Account[]
+  auditLogs AuditLog[] // Relation ke AuditLog
   createdAt DateTime  @default(now())
 
-  @@map("users") 
+  @@map("users")
+  @@index([email])
 }
 
 model Account {
-  id            Int           @id @default(autoincrement())
-  accountNumber String        @unique
+  id            Int      @id @default(autoincrement())
+  accountNumber String   @unique @db.VarChar(20)
   userId        Int
-  balance       Decimal        @default(0)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  balance       Decimal  @default(0) @db.Decimal(15, 2) // 15 digit total, 2 decimal places
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relasi
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   sentTrans     Transaction[] @relation("Source")
   receivedTrans Transaction[] @relation("Destination")
 
-  @@map("accounts") 
+  @@map("accounts")
+  @@index([userId])
+  @@index([accountNumber])
 }
 
 model Transaction {
-  id            Int      @id @default(autoincrement())
-  type          String   
-  amount        Decimal
+  id            Int             @id @default(autoincrement())
+  type          TransactionType
+  amount        Decimal         @db.Decimal(15, 2)
   sourceId      Int?
-  source        Account? @relation("Source", fields: [sourceId], references: [id])
+  source        Account?        @relation("Source", fields: [sourceId], references: [id])
   destinationId Int?
-  destination   Account? @relation("Destination", fields: [destinationId], references: [id])
-  createdAt     DateTime @default(now())
-  idempotencyKey String? @unique
+  destination   Account?        @relation("Destination", fields: [destinationId], references: [id])
+  createdAt     DateTime        @default(now())
+  idempotencyKey String?        @unique @db.VarChar(100)
 
+  @@map("transactions")
   @@index([createdAt])
-  @@map("transactions") 
+  @@index([sourceId])
+  @@index([destinationId])
+  @@index([type, createdAt])
+}
+
+model AuditLog {
+  id          Int         @id @default(autoincrement())
+  action      AuditAction
+  entityType  EntityType
+  entityId    Int?
+  adminId     Int?        // Nullable untuk system-generated actions
+  adminEmail  String      @db.VarChar(255)
+  oldData     Json?
+  newData     Json?
+  ipAddress   String?     @db.VarChar(45) // Support IPv6 (max 45 chars)
+  userAgent   String?     @db.Text
+  createdAt   DateTime    @default(now())
+
+  // Optional relation ke User
+  admin       User?       @relation(fields: [adminId], references: [id])
+
+  @@map("audit_logs")
+  @@index([entityType, entityId])
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([action, createdAt])
 }
