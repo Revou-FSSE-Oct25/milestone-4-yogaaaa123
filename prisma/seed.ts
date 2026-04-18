@@ -41,7 +41,7 @@ async function main() {
       email: 'yoga@revo.com',
       name: 'Yoga',
       password: commonPassword,
-      role: 'USER',
+      role: 'CUSTOMER',
       accounts: {
         create: {
           accountNumber: '5122937627',
@@ -58,7 +58,7 @@ async function main() {
       email: 'andi@revo.com',
       name: 'Andi',
       password: commonPassword,
-      role: 'USER',
+      role: 'CUSTOMER',
       accounts: {
         create: {
           accountNumber: '3029953227',

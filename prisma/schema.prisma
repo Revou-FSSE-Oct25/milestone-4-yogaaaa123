@@ -23,6 +23,8 @@ enum AuditAction {
   UPDATE
   DELETE
   VIEW
+  DEACTIVATE
+  REACTIVATE
 }
 
 enum EntityType {
@@ -39,12 +41,18 @@ model User {
   name      String    @db.VarChar(100)
   role      UserRole  @default(CUSTOMER)
   hashedRefreshToken String? @db.VarChar(255)
+  isActive  Boolean   @default(true)
+  deactivatedAt      DateTime?
+  deactivationReason String?   @db.VarChar(500)
+  reactivatedAt      DateTime?
+  reactivationReason String?   @db.VarChar(500)
   accounts  Account[]
   auditLogs AuditLog[] // Relation ke AuditLog
   createdAt DateTime  @default(now())
 
   @@map("users")
   @@index([email])
+  @@index([isActive])
 }
 
 model Account {
@@ -52,6 +60,7 @@ model Account {
   accountNumber String   @unique @db.VarChar(20)
   userId        Int
   balance       Decimal  @default(0) @db.Decimal(15, 2) // 15 digit total, 2 decimal places
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -63,6 +72,7 @@ model Account {
   @@map("accounts")
   @@index([userId])
   @@index([accountNumber])
+  @@index([isActive])
 }
 
 model Transaction {

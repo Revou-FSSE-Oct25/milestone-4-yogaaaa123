@@ -1,11 +1,13 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
   Body,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtGuard } from '../common/guards/jwt.guard';
@@ -43,19 +45,62 @@ export class AdminController {
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @Request() req,
   ) {
-    const updatedUser = await this.adminService.updateUser(+id, updateUserDto);
+    const adminId = req.user.id;
+    const adminEmail = req.user.email;
+    
+    const updatedUser = await this.adminService.updateUser(
+      +id, 
+      updateUserDto,
+      adminId,
+      adminEmail,
+    );
     return {
       message: 'User berhasil diperbarui',
       data: updatedUser,
     };
   }
 
-  @Delete('users/:id')
-  async removeUser(@Param('id') id: string) {
-    await this.adminService.removeUser(+id);
+  @Post('users/:id/deactivate')
+  async deactivateUser(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @Request() req,
+  ) {
+    const adminId = req.user.id;
+    const adminEmail = req.user.email;
+    
+    const deactivatedUser = await this.adminService.deactivateUser(
+      +id,
+      adminId,
+      adminEmail,
+      body.reason,
+    );
     return {
-      message: 'User berhasil dihapus',
+      message: 'User berhasil dinonaktifkan',
+      data: deactivatedUser,
+    };
+  }
+
+  @Post('users/:id/reactivate')
+  async reactivateUser(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @Request() req,
+  ) {
+    const adminId = req.user.id;
+    const adminEmail = req.user.email;
+    
+    const reactivatedUser = await this.adminService.reactivateUser(
+      +id,
+      adminId,
+      adminEmail,
+      body.reason,
+    );
+    return {
+      message: 'User berhasil diaktifkan kembali',
+      data: reactivatedUser,
     };
   }
 

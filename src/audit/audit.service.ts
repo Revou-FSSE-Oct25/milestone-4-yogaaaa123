@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditAction, EntityType } from '@prisma/client';
 
 export interface AuditLogData {
-  action: string;
-  entityType: string;
+  action: AuditAction;
+  entityType: EntityType;
   entityId?: number;
   adminId: number;
   adminEmail: string;
@@ -11,6 +12,7 @@ export interface AuditLogData {
   newData?: any;
   ipAddress?: string;
   userAgent?: string;
+  metadata?: Record<string, any>;
 }
 
 @Injectable()

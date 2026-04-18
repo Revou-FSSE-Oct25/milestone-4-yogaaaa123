@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
@@ -51,13 +51,28 @@ export class AdminService {
   }
 
   // Update user by ID (for admin)
-  async updateUser(id: number, updateUserDto: UpdateUserDto) {
+  async updateUser(
+    id: number, 
+    updateUserDto: UpdateUserDto,
+    adminId: number,
+    adminEmail: string,
+  ) {
+    // Get old user data untuk audit
+    const oldUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+
+    if (!oldUser) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
     // Jika user ingin update password, kita harus hash lagi
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: updateUserDto,
       select: {
@@ -65,13 +80,166 @@ export class AdminService {
         name: true,
         email: true,
         role: true,
+        createdAt: true,
       },
     });
+
+    // Log audit event
+    await this.auditService.logAuditEvent({
+      action: 'UPDATE' as any,
+      entityType: 'USER' as any,
+      entityId: id,
+      adminId,
+      adminEmail,
+      oldData: oldUser,
+      newData: updatedUser,
+    });
+
+    this.logger.log(`Admin ${adminEmail} updated user ${id}`);
+
+    return updatedUser;
   }
 
-  // Delete user by ID (for admin)
-  async removeUser(id: number) {
-    return this.userService.remove(id);
+  // Deactivate user by ID (for admin) - instead of delete
+  async deactivateUser(
+    id: number,
+    adminId: number,
+    adminEmail: string,
+    reason?: string,
+  ) {
+    // Get user data untuk audit
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException('User sudah nonaktif');
+    }
+
+    // Check if user has accounts with balance > 0
+    const accounts = await this.prisma.account.findMany({
+      where: { userId: id },
+      select: { id: true, accountNumber: true, balance: true },
+    });
+
+    const accountsWithBalance = accounts.filter(acc => Number(acc.balance) > 0);
+    if (accountsWithBalance.length > 0) {
+      throw new BadRequestException(
+        `User masih memiliki ${accountsWithBalance.length} rekening dengan saldo > 0. Harus transfer atau tarik dulu.`,
+      );
+    }
+
+    // Deactivate user (soft delete)
+    const deactivatedUser = await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date(),
+        deactivationReason: reason || 'Deactivated by admin',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        deactivatedAt: true,
+        deactivationReason: true,
+      },
+    });
+
+    // Also deactivate all user's accounts
+    await this.prisma.account.updateMany({
+      where: { userId: id },
+      data: { isActive: false },
+    });
+
+    // Log audit event
+    await this.auditService.logAuditEvent({
+      action: 'DEACTIVATE' as any,
+      entityType: 'USER' as any,
+      entityId: id,
+      adminId,
+      adminEmail,
+      oldData: user,
+      newData: deactivatedUser,
+      metadata: {
+        reason,
+        accountsDeactivated: accounts.length,
+        accountsWithBalance: accountsWithBalance.length,
+      },
+    });
+
+    this.logger.log(`Admin ${adminEmail} deactivated user ${id} - Reason: ${reason || 'No reason provided'}`);
+
+    return deactivatedUser;
+  }
+
+  // Reactivate user by ID (for admin)
+  async reactivateUser(
+    id: number,
+    adminId: number,
+    adminEmail: string,
+    reason?: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException('User sudah aktif');
+    }
+
+    const reactivatedUser = await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: true,
+        reactivatedAt: new Date(),
+        reactivationReason: reason || 'Reactivated by admin',
+        deactivationReason: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        reactivatedAt: true,
+        reactivationReason: true,
+      },
+    });
+
+    // Also reactivate all user's accounts
+    await this.prisma.account.updateMany({
+      where: { userId: id },
+      data: { isActive: true },
+    });
+
+    // Log audit event
+    await this.auditService.logAuditEvent({
+      action: 'REACTIVATE' as any,
+      entityType: 'USER' as any,
+      entityId: id,
+      adminId,
+      adminEmail,
+      oldData: user,
+      newData: reactivatedUser,
+      metadata: { reason },
+    });
+
+    this.logger.log(`Admin ${adminEmail} reactivated user ${id} - Reason: ${reason || 'No reason provided'}`);
+
+    return reactivatedUser;
   }
 
   // Get all accounts (for admin)
