@@ -60,11 +60,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const port = 3000;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
 
   const winstonLogger = new WinstonLogger();
-  winstonLogger.log(`🚀 RevoBank API is running on: http://localhost:${port}`, 'Bootstrap');
+  winstonLogger.log(`🚀 RevoBank API is running on port: ${port}`, 'Bootstrap');
   winstonLogger.log(`📖 Swagger Documentation: http://localhost:${port}/api`, 'Bootstrap');
   winstonLogger.log(`🏥 Health Check: http://localhost:${port}/health`, 'Bootstrap');
 }

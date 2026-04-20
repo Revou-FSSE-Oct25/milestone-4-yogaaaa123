@@ -6,7 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// ========== ENUMS ==========
 enum UserRole {
   CUSTOMER
   ADMIN
@@ -33,7 +32,6 @@ enum EntityType {
   TRANSACTION
 }
 
-// ========== MODELS ==========
 model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique @db.VarChar(255)
@@ -59,12 +57,11 @@ model Account {
   id            Int      @id @default(autoincrement())
   accountNumber String   @unique @db.VarChar(20)
   userId        Int
-  balance       Decimal  @default(0) @db.Decimal(15, 2) // 15 digit total, 2 decimal places
+  balance       Decimal  @default(0) @db.Decimal(15, 2)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relasi
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   sentTrans     Transaction[] @relation("Source")
   receivedTrans Transaction[] @relation("Destination")
@@ -98,15 +95,14 @@ model AuditLog {
   action      AuditAction
   entityType  EntityType
   entityId    Int?
-  adminId     Int?        // Nullable untuk system-generated actions
+  adminId     Int? 
   adminEmail  String      @db.VarChar(255)
   oldData     Json?
   newData     Json?
-  ipAddress   String?     @db.VarChar(45) // Support IPv6 (max 45 chars)
+  ipAddress   String?     @db.VarChar(45) 
   userAgent   String?     @db.Text
   createdAt   DateTime    @default(now())
 
-  // Optional relation ke User
   admin       User?       @relation(fields: [adminId], references: [id])
 
   @@map("audit_logs")
